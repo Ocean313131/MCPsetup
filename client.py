@@ -135,7 +135,7 @@ async def chat_loop(session: ClientSession, openai_client: AsyncOpenAI):
 # ---------------------------------------------------------------------------
 
 async def main():
-    api_key = os.getenv()
+    api_key = os.getenv("HIER API KEY EINTRAGEN")
     if not api_key:
         raise ValueError("Set the OPENAI_API_KEY environment variable first.")
 
