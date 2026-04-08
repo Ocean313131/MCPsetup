@@ -3,32 +3,33 @@
 # An MCP client that:
 #   1. Launches the MCP server as a subprocess
 #   2. Discovers its tools
-#   3. Uses ChatGPT to decide when/how to call them
+#   3. Uses NVIDIA NIM als LLM (kostenlose 90-Tage-Trial)
 #   4. Runs a simple chat loop in the terminal
 #
 # Requirements:
 #   pip install mcp openai
 #
 # Usage:
-#   OPENAI_API_KEY=sk-... python mcp_client.py
+#   python mcp_client.py
 
 import asyncio
 import json
-import os
 
 from openai import AsyncOpenAI
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 # ---------------------------------------------------------------------------
-# Config
+# Config — trage hier deinen NVIDIA NIM API Key ein
 # ---------------------------------------------------------------------------
+
+NVIDIA_API_KEY = "NVIDIAAPIKEYHIEREINTRAGEN"
 
 # Path to your MCP server script
 SERVER_SCRIPT = "hello_mcp_server.py"
 
-# ChatGPT model to use
-OPENAI_MODEL = "gpt-4o-mini"
+# NVIDIA NIM Modell (Llama von Meta, kostenlos nutzbar)
+OPENAI_MODEL = "meta/llama-3.1-8b-instruct"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -61,14 +62,14 @@ async def call_mcp_tool(session: ClientSession, tool_name: str, tool_args: dict)
 # ---------------------------------------------------------------------------
 
 async def chat_loop(session: ClientSession, openai_client: AsyncOpenAI):
-    """Interactive loop: user types → ChatGPT reasons → tools called if needed."""
+    """Interactive loop: user types → LLM reasons → tools called if needed."""
 
     # Discover available tools from the MCP server
     tools_response = await session.list_tools()
     openai_tools = mcp_tools_to_openai_schema(tools_response.tools)
     print(f"[Connected] Tools available: {[t.name for t in tools_response.tools]}\n")
 
-    # Conversation history sent to OpenAI on every turn
+    # Conversation history sent to the LLM on every turn
     messages = []
 
     print("Type your message (Ctrl+C to quit)\n")
@@ -81,17 +82,17 @@ async def chat_loop(session: ClientSession, openai_client: AsyncOpenAI):
 
         messages.append({"role": "user", "content": user_input})
 
-        # --- Ask ChatGPT (with tools available) ---
+        # --- Ask the LLM (with tools available) ---
         response = await openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=messages,
-            tools=openai_tools,        # let the model know what tools exist
-            tool_choice="auto",        # model decides whether to call a tool
+            tools=openai_tools,   # let the model know what tools exist
+            tool_choice="auto",   # model decides whether to call a tool
         )
 
         assistant_message = response.choices[0].message
 
-        # --- If ChatGPT wants to call a tool ---
+        # --- If the LLM wants to call a tool ---
         if assistant_message.tool_calls:
             # Add the assistant's (tool-calling) message to history
             messages.append(assistant_message)
@@ -114,7 +115,7 @@ async def chat_loop(session: ClientSession, openai_client: AsyncOpenAI):
                     "content": tool_result,
                 })
 
-            # Ask ChatGPT to produce a final reply now that it has the tool result
+            # Ask the LLM to produce a final reply now that it has the tool result
             follow_up = await openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
                 messages=messages,
@@ -135,11 +136,11 @@ async def chat_loop(session: ClientSession, openai_client: AsyncOpenAI):
 # ---------------------------------------------------------------------------
 
 async def main():
-    api_key = os.getenv("HIER API KEY EINTRAGEN")
-    if not api_key:
-        raise ValueError("Set the OPENAI_API_KEY environment variable first.")
-
-    openai_client = AsyncOpenAI(api_key=api_key)
+    # NVIDIA NIM nutzt die gleiche API wie OpenAI — nur andere base_url
+    openai_client = AsyncOpenAI(
+        api_key=NVIDIA_API_KEY,
+        base_url="https://integrate.api.nvidia.com/v1",  # ← NVIDIA NIM Endpunkt
+    )
 
     # Launch the MCP server as a subprocess communicating over stdio
     server_params = StdioServerParameters(
