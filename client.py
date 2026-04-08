@@ -21,7 +21,7 @@ from mcp.client.stdio import stdio_client
 # Config — trage hier deinen NVIDIA NIM API Key ein
 # ---------------------------------------------------------------------------
 
-NVIDIA_API_KEY = "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"
+NVIDIA_API_KEY = "NVIDIAAPIKEYHIER"
 
 # Path to your MCP server script
 SERVER_SCRIPT = "hello_mcp_server.py"
