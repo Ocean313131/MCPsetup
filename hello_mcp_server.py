@@ -45,7 +45,7 @@ def get_session_duration() -> str:
 
 
 @mcp.tool()
-def ping_tool(host: str, count: int = 4) -> str:
+async def ping_tool(host: str, count: int = 4) -> str:
     """
     Pingt eine Webseite oder IP-Adresse und gibt das Ergebnis zurück.
 
@@ -56,20 +56,33 @@ def ping_tool(host: str, count: int = 4) -> str:
     Returns:
         Das Ergebnis des Pings als String.
     """
+    import asyncio
+
     param = "-n" if platform.system().lower() == "windows" else "-c"
 
     try:
-        result = subprocess.run(
-            ["ping", param, str(count), host],
-            capture_output=True,
-            text=True,
-            timeout=15
+        # asyncio-Subprocess: blockiert den Event Loop NICHT
+        proc = await asyncio.create_subprocess_exec(
+            "ping", param, str(count), host,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        output = result.stdout if result.stdout else result.stderr
+
+        # Encoding explizit angeben – verhindert UnicodeDecodeError auf Windows/Linux
+        encoding = "cp850" if platform.system().lower() == "windows" else "utf-8"
+
+        try:
+            raw_out, raw_err = await asyncio.wait_for(proc.communicate(), timeout=20)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return f"Timeout: {host} hat nicht innerhalb von 20 Sekunden geantwortet."
+
+        stdout = raw_out.decode(encoding, errors="replace")
+        stderr = raw_err.decode(encoding, errors="replace")
+
+        output = stdout.strip() if stdout.strip() else stderr.strip()
         return output if output else "Kein Output erhalten."
 
-    except subprocess.TimeoutExpired:
-        return f"Timeout: {host} hat nicht innerhalb von 15 Sekunden geantwortet."
     except FileNotFoundError:
         return "Fehler: 'ping' wurde auf diesem System nicht gefunden."
     except Exception as e:
