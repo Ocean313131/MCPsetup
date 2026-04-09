@@ -1,2 +1,2 @@
-mcpsetup
-pip install mcp muss vorher gemacht werden
+mcpsetup:
+"pip install mcp"
