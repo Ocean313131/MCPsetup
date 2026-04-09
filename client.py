@@ -13,7 +13,7 @@ from mcp.client.stdio import stdio_client
 # Config
 # ---------------------------------------------------------------------------
 
-NVIDIA_API_KEY = "Hier NVIDIA API KEY EINFUEGEN"
+NVIDIA_API_KEY = "API KEY HIER EINFUEGEN"
 
 # Path to your MCP server script
 SERVER_SCRIPT = "hello_mcp_server.py"
