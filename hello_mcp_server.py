@@ -13,20 +13,6 @@ SESSION_START = datetime.now()
 mcp = FastMCP("Hello MCP")
 
 @mcp.tool()
-def hello_world(name: str = "World") -> str:
-    """
-    Say hello to someone.
-
-    Args:
-        name: The name of the person to greet. Defaults to "World".
-
-    Returns:
-        A friendly greeting string.
-    """
-    return f"Hello, {name}!"
-
-
-@mcp.tool()
 def get_session_duration() -> str:
     """
     Returns how long the current server session has been running.
@@ -45,7 +31,7 @@ def get_session_duration() -> str:
 
 
 @mcp.tool()
-async def ping_tool(host: str, count: int = 4) -> str:
+def ping_tool(host: str, count: int = 4) -> str:
     """
     Pingt eine Webseite oder IP-Adresse und gibt das Ergebnis zurück.
 
@@ -56,33 +42,24 @@ async def ping_tool(host: str, count: int = 4) -> str:
     Returns:
         Das Ergebnis des Pings als String.
     """
-    import asyncio
-
     param = "-n" if platform.system().lower() == "windows" else "-c"
 
     try:
-        # asyncio-Subprocess: blockiert den Event Loop NICHT
-        proc = await asyncio.create_subprocess_exec(
-            "ping", param, str(count), host,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        result = subprocess.run(
+            ["ping", param, str(count), host],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,   # merge stderr into stdout
+            timeout=15,
         )
-
-        # Encoding explizit angeben – verhindert UnicodeDecodeError auf Windows/Linux
-        encoding = "cp850" if platform.system().lower() == "windows" else "utf-8"
-
+        # Try UTF-8 first, fall back to system default (cp1252 on German Windows)
         try:
-            raw_out, raw_err = await asyncio.wait_for(proc.communicate(), timeout=20)
-        except asyncio.TimeoutError:
-            proc.kill()
-            return f"Timeout: {host} hat nicht innerhalb von 20 Sekunden geantwortet."
-
-        stdout = raw_out.decode(encoding, errors="replace")
-        stderr = raw_err.decode(encoding, errors="replace")
-
-        output = stdout.strip() if stdout.strip() else stderr.strip()
+            output = result.stdout.decode("utf-8").strip()
+        except UnicodeDecodeError:
+            output = result.stdout.decode(errors="replace").strip()
         return output if output else "Kein Output erhalten."
 
+    except subprocess.TimeoutExpired:
+        return f"Timeout: {host} hat nicht innerhalb von 15 Sekunden geantwortet."
     except FileNotFoundError:
         return "Fehler: 'ping' wurde auf diesem System nicht gefunden."
     except Exception as e:
