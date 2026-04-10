@@ -5,7 +5,7 @@
 "pip install mcp"
 "pip install openai"
 
-3. hello_mcp_server.py & client.py müssen im gleichen Verzeichnis sein
+3. hello_mcp_server.py & client.py MÜSSEN im gleichen Verzeichnis sein
   
 4. Erst hello_mcp_server.py starten
 
