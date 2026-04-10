@@ -1,4 +1,6 @@
-# mcp_client.py - Final fix für Llama-4 Maverick + FastMCP Validation Errors
+# ---------------------------------------------------------------------------
+# imports
+# ---------------------------------------------------------------------------
 
 import asyncio
 import json
